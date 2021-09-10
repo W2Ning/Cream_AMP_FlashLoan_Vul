@@ -75,6 +75,10 @@
 
 同时我找一个abi转solidity的工具,再也不用手写interface了,但同时攻击代码也因为8个interface变得特别长.
 
+```
+https://gnidan.github.io/abi-to-sol/
+```
+
 但我仍旧认为,单文件比引入外部文件要省事.
 
 选择在高度为`13125070`的块上Fork,部署攻击合约
@@ -86,14 +90,10 @@
 攻击前的metamask余额
 
 ![images](./images/Before_Attack.png)
+
 攻击后的metamask余额
+
 ![images](./images/After_Attack.png)
-
-
-
-```
-https://gnidan.github.io/abi-to-sol/
-```
 
 
 ```
